@@ -1,0 +1,109 @@
+document.getElementById('getWeather').addEventListener('click', () => {
+  const city = document.getElementById('city').value;
+  if (!city) {
+    showError('Please enter a city name.');
+    return;
+  }
+  fetchWeatherByCity(city);
+});
+
+document.getElementById('getLocationWeather').addEventListener('click', () => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(position => {
+      const { latitude, longitude } = position.coords;
+      fetchWeatherByCoordinates(latitude, longitude);
+    }, () => {
+      showError('Unable to retrieve your location.');
+    });
+  } else {
+    showError('Geolocation is not supported by your browser.');
+  }
+});
+
+function fetchWeatherByCity(city) {
+  const apiKey = 'YOUR_API_KEY'; 
+  const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+  fetchWeatherData(apiUrl);
+}
+
+function fetchWeatherByCoordinates(lat, lon) {
+  const apiKey = 'YOUR_API_KEY'; 
+  const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+  fetchWeatherData(apiUrl);
+}
+
+function fetchWeatherData(apiUrl) {
+  toggleLoading(true);
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      toggleLoading(false);
+      if (data.cod === '404') {
+        showError('City not found.');
+      } else {
+        displayWeatherInfo(data);
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching weather data:', error);
+      toggleLoading(false);
+      showError('Error fetching weather data. Please try again later.');
+    });
+}
+
+function displayWeatherInfo(data) {
+  const { name, main, weather, wind } = data;
+  const { temp, feels_like, humidity, pressure } = main;
+  const { description, icon } = weather[0];
+  const { speed: windSpeed } = wind;
+
+  document.getElementById('location').textContent = `Weather in ${name}`;
+  document.getElementById('description').textContent = description.charAt(0).toUpperCase() + description.slice(1);
+  document.getElementById('temperature').textContent = temp.toFixed(1);
+  document.getElementById('feels_like').textContent = feels_like.toFixed(1);
+  document.getElementById('humidity').textContent = humidity;
+  document.getElementById('pressure').textContent = pressure;
+  document.getElementById('wind').textContent = windSpeed;
+
+  document.getElementById('icon').src = `https://openweathermap.org/img/wn/${icon}.png`;
+
+  setWeatherBackground(description);
+
+  document.getElementById('weather-info').classList.remove('hidden');
+  document.getElementById('error-message').classList.add('hidden');
+}
+
+function setWeatherBackground(description) {
+  const body = document.body;
+
+  if (description.includes('cloud')) {
+    body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?cloudy-sky')";
+  } else if (description.includes('clear')) {
+    body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?clear-sky')";
+  } else if (description.includes('rain')) {
+    body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?rainy')";
+  } else if (description.includes('snow')) {
+    body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?snowy')";
+  } else if (description.includes('thunderstorm')) {
+    body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?thunderstorm')";
+  } else {
+    body.style.backgroundImage = "url('https://source.unsplash.com/1600x900/?weather')";
+  }
+}
+
+function showError(message) {
+  document.getElementById('error-message').textContent = message;
+  document.getElementById('error-message').classList.remove('hidden');
+  document.getElementById('weather-info').classList.add('hidden');
+}
+
+function toggleLoading(isLoading) {
+  const loadingElement = document.getElementById('loading');
+  if (isLoading) {
+    loadingElement.classList.remove('hidden');
+  } else {
+    loadingElement.classList.add('hidden');
+  }
+}
+
+
